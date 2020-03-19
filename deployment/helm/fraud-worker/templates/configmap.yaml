@@ -1,0 +1,13 @@
+kind: ConfigMap
+metadata:
+  name: {{ include "fraud-worker.fullname" . }}
+apiVersion: v1
+data:
+  config.yaml: |
+    # Worker configuration file
+    worker:
+      # Zeebe instance
+      zeebe:
+        # Broker endpoint
+        brokerEndpoint: {{ tpl .Values.global.zeebe . }}:26500
+

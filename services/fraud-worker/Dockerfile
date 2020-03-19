@@ -1,4 +1,6 @@
-FROM golang:alpine as base
+FROM golang:1.14-alpine as base
+
+RUN apk add --no-cache git
 
 WORKDIR /app
 
@@ -10,6 +12,8 @@ ENV CGO_ENABLED=0 \
 COPY . .
 RUN go mod download
 COPY . .
+
+RUN go version
 
 ### Build
 RUN go build -ldflags '-s -w' -o app

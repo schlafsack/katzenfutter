@@ -8,7 +8,7 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-    {{- include "fraud-worker.selectorLabels" . | nindent 6 }}
+      {{- include "fraud-worker.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
@@ -21,15 +21,24 @@ spec:
       serviceAccountName: {{ include "fraud-worker.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "fraud-worker.fullname" . }}
+            defaultMode: 0744
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - name: config
+              mountPath: /config/config.yaml
+              subPath: config.yaml
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: 80
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -53,3 +62,4 @@ spec:
       tolerations:
     {{- toYaml . | nindent 8 }}
     {{- end }}
+
