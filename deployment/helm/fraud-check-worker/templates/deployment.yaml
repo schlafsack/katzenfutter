@@ -1,35 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "fraud-worker.fullname" . }}
+  name: {{ include "fraud-check-worker.fullname" . }}
   labels:
-    {{- include "fraud-worker.labels" . | nindent 4 }}
+  {{- include "fraud-check-worker.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "fraud-worker.selectorLabels" . | nindent 6 }}
+  {{- include "fraud-check-worker.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-      {{- include "fraud-worker.selectorLabels" . | nindent 8 }}
+    {{- include "fraud-check-worker.selectorLabels" . | nindent 8 }}
     spec:
-        {{- with .Values.imagePullSecrets }}
+      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
-      serviceAccountName: {{ include "fraud-worker.serviceAccountName" . }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "fraud-check-worker.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- toYaml .Values.podSecurityContext | nindent 8 }}
       volumes:
         - name: config
           configMap:
-            name: {{ include "fraud-worker.fullname" . }}
+            name: {{ include "fraud-check-worker.fullname" . }}
             defaultMode: 0744
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           volumeMounts:

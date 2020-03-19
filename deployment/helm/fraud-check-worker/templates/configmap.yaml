@@ -1,6 +1,6 @@
 kind: ConfigMap
 metadata:
-  name: {{ include "fraud-worker.fullname" . }}
+  name: {{ include "fraud-check-worker.fullname" . }}
 apiVersion: v1
 data:
   config.yaml: |

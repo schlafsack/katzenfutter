@@ -5,7 +5,7 @@ import (
 	"github.com/zeebe-io/zeebe/clients/go/pkg/entities"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/worker"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/zbc"
-	"katzenfutter-fraud-worker/configuration"
+	"katzenfutter-fraud-check-worker/configuration"
 	"log"
 )
 

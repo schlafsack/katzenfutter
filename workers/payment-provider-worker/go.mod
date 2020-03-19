@@ -1,4 +1,4 @@
-module katzenfutter-fraud-worker
+module katzenfutter-order-source
 
 go 1.14
 

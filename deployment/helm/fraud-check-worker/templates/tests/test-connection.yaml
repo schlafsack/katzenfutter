@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "fraud-check-worker.fullname" . }}-test-connection"
+  labels:
+  {{- include "fraud-check-worker.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "fraud-check-worker.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never

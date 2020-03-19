@@ -4,7 +4,7 @@ global:
 replicaCount: 1
 
 image:
-  repository: greasley.com/katzenfutter-fraud-worker
+  repository: greasley.com/fraud-check-worker
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -14,7 +14,7 @@ fullnameOverride: ""
 serviceAccount:
   create: true
   annotations: {}
-  name: fraud-worker
+  name: fraud-check-worker
 
 podSecurityContext: {}
 securityContext: {}
