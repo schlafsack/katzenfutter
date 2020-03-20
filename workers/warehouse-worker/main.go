@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/zbc"
-	"katzenfutter-order-source/configuration"
 	"log"
 	"time"
+	"warehouse-worker/configuration"
 )
 
 func main() {

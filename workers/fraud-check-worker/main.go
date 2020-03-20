@@ -2,16 +2,20 @@ package main
 
 import (
 	"context"
+	"fraud-check-worker/configuration"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/entities"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/worker"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/zbc"
-	"katzenfutter-fraud-check-worker/configuration"
 	"log"
+	"math/rand"
+	"time"
 )
 
 func main() {
 
 	log.Println("Starting...")
+
+	rand.Seed(time.Now().UTC().UnixNano())
 
 	c := configuration.New()
 	broker := c.GetBrokerEndpoint()
@@ -24,7 +28,7 @@ func main() {
 		panic(err)
 	}
 
-	jobWorker := zbClient.NewJobWorker().JobType("fraud_check").Handler(handleJob).Open()
+	jobWorker := zbClient.NewJobWorker().JobType("fraud_check_task").Handler(handleJob).Open()
 	defer jobWorker.Close()
 
 	jobWorker.AwaitClose()
@@ -40,7 +44,8 @@ func handleJob(client worker.JobClient, job entities.Job) {
 		return
 	}
 
-	variables["fraud"] = false
+	variables["fraud"] = rand.Intn(100) >= 80
+
 	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
 	if err != nil {
 		// failed to set the updated variables
@@ -51,7 +56,7 @@ func handleJob(client worker.JobClient, job entities.Job) {
 	ctx := context.Background()
 	_, _ = request.Send(ctx)
 
-	//log.Println("Complete job", jobKey, "of type", job.Type)
+	log.Println("Order ", variables["order_id"], " fraudy: ", variables["fraud"])
 }
 
 func failJob(client worker.JobClient, job entities.Job) {

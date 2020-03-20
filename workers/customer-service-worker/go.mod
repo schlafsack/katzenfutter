@@ -1,4 +1,4 @@
-module fraud-check-worker
+module customer-service-worker
 
 go 1.14
 

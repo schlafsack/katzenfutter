@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/zbc"
-	"katzenfutter-order-source/configuration"
 	"log"
+	"order-source-worker/configuration"
 	"time"
 )
 
@@ -25,11 +26,19 @@ func main() {
 
 	ctx := context.Background()
 	for {
-		//log.Println("New order...")
-		_, err = zbClient.NewCreateInstanceCommand().BPMNProcessId("test_process").LatestVersion().Send(ctx)
+		orderId := uuid.New().String()
+		log.Println("New order ", orderId)
+		variables := make(map[string]interface{})
+		variables["order_id"] = orderId
+		request, err := zbClient.NewCreateInstanceCommand().BPMNProcessId("order_process").
+			LatestVersion().VariablesFromMap(variables)
 		if err != nil {
 			panic(err)
 		}
-		time.Sleep(10 * time.Millisecond)
+		_, err = request.Send(ctx)
+		if err != nil {
+			panic(err)
+		}
+		time.Sleep(1 * time.Second)
 	}
 }

@@ -1,4 +1,4 @@
-module katzenfutter-order-source
+module warehouse-worker
 
 go 1.14
 

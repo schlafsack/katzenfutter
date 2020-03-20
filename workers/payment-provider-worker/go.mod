@@ -1,4 +1,4 @@
-module katzenfutter-order-source
+module payment-provider-worker
 
 go 1.14
 
