@@ -1,0 +1,55 @@
+version: '3'
+
+networks:
+  zeebe-network:
+    driver: bridge
+
+services:
+
+  zeebe-order-source-worker:
+    container_name: zeebe-order-source-worker
+    volumes:
+      - ./workers/config.yml:/config.yml
+    build: ../../workers/order-source-worker
+    networks:
+      - zeebe-network
+
+  zeebe-fraud-check-worker:
+    container_name: zeebe-fraud-check-worker
+    volumes:
+      - ./workers/config.yml:/config.yml
+    build: ../../workers/fraud-check-worker
+    networks:
+      - zeebe-network
+
+  zeebe-payment-provider-worker:
+    container_name: zeebe-payment-provider
+    volumes:
+      - ./workers/config.yml:/config.yml
+    build: ../../workers/payment-provider-worker
+    networks:
+      - zeebe-network
+
+  zeebe-consignment-service-worker:
+    container_name: zeebe-consignment-service-worker
+    volumes:
+      - ./workers/config.yml:/config.yml
+    build: ../../workers/consignment-service-worker
+    networks:
+      - zeebe-network
+
+  zeebe-customer-service-worker:
+    container_name: zeebe-customer-service-worker
+    volumes:
+      - ./workers/config.yml:/config.yml
+    build: ../../workers/customer-service-worker
+    networks:
+      - zeebe-network
+
+#  zeebe-warehouse-worker:
+#    container_name: zeebe-warehouse-worker
+#    volumes:
+#      - ./workers/config.yml:/config.yml
+#    build: ../../workers/warehouse-worker
+#    networks:
+#      - zeebe-network

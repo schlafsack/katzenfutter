@@ -39,6 +39,6 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Duration(c.GetFrequency()) * time.Second)
 	}
 }

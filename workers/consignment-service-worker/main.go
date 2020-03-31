@@ -1,13 +1,14 @@
 package main
 
 import (
+	"consignment-service-worker/configuration"
 	"context"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/entities"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/worker"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/zbc"
 	"log"
 	"math/rand"
-	"payment-provider-worker/configuration"
+	"strconv"
 	"time"
 )
 
@@ -28,7 +29,7 @@ func main() {
 		panic(err)
 	}
 
-	jobWorker := zbClient.NewJobWorker().JobType("authorise_payment_task").Handler(handleJob).Open()
+	jobWorker := zbClient.NewJobWorker().JobType("build_consignments_task").Handler(handleJob).Open()
 	defer jobWorker.Close()
 
 	jobWorker.AwaitClose()
@@ -44,7 +45,9 @@ func handleJob(client worker.JobClient, job entities.Job) {
 		return
 	}
 
-	variables["payment"] = rand.Intn(100) >= 10
+	c := createConsignments()
+	variables["consignments"] = c
+	log.Println("Created", len(c), "consignments for order", variables["order_id"])
 
 	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
 	if err != nil {
@@ -55,8 +58,20 @@ func handleJob(client worker.JobClient, job entities.Job) {
 
 	ctx := context.Background()
 	_, _ = request.Send(ctx)
+}
 
-	log.Println("Payment taken for Order ", variables["order_id"], variables["payment"])
+func createConsignments() []interface{} {
+	cqty := 1 + rand.Intn(4)
+	consignments := make([]interface{}, cqty)
+	for i := 0; i < cqty; i++ {
+		lqty := 1 + rand.Intn(9)
+		lines := make(map[string]interface{}, lqty)
+		for x := 0; x < lqty; x++ {
+			lines["line_"+strconv.Itoa(x)] = 1 + rand.Intn(100)
+		}
+		consignments[i] = lines
+	}
+	return consignments
 }
 
 func failJob(client worker.JobClient, job entities.Job) {

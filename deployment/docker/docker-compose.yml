@@ -1,0 +1,123 @@
+version: '3'
+
+networks:
+  zeebe-network:
+    driver: bridge
+
+volumes:
+  zeebe-data:
+  zeebe-elasticsearch-data:
+
+services:
+
+  zeebe-gateway:
+    container_name: zeebe-gateway
+    image: camunda/zeebe:0.22.1
+    environment:
+      - ZEEBE_LOG_LEVEL=debug
+      - ZEEBE_STANDALONE_GATEWAY=true
+      - ZEEBE_GATEWAY_CONTACT_POINT=zeebe-node0:26502
+      - ZEEBE_GATEWAY_CLUSTER_PORT=26502
+      - ZEEBE_GATEWAY_CLUSTER_HOST=zeebe-gateway
+    ports:
+      - "26500:26500"
+    volumes:
+      - ./zeebe/gateway.cfg.toml:/usr/local/zeebe/conf/gateway.cfg.toml
+    networks:
+      - zeebe-network
+    depends_on:
+      - zeebe-node0
+
+  zeebe-node0:
+    container_name: zeebe-broker-1
+    image: camunda/zeebe:0.22.1
+    environment:
+      - ZEEBE_LOG_LEVEL=debug
+      - ZEEBE_NODE_ID=0
+      - ZEEBE_PARTITIONS_COUNT=2
+      - ZEEBE_REPLICATION_FACTOR=3
+      - ZEEBE_CLUSTER_SIZE=3
+      - ZEEBE_CONTACT_POINTS=zeebe-node0:26502
+    ports:
+      - "26600:26500"
+    volumes:
+      - ./zeebe/zeebe.cfg.toml:/usr/local/zeebe/conf/zeebe.cfg.toml
+    networks:
+      - zeebe-network
+    depends_on:
+      - zeebe-elasticsearch
+
+  zeebe-node1:
+    container_name: zeebe-broker-2
+    image: camunda/zeebe:0.22.1
+    environment:
+      - ZEEBE_LOG_LEVEL=debug
+      - ZEEBE_NODE_ID=1
+      - ZEEBE_PARTITIONS_COUNT=2
+      - ZEEBE_REPLICATION_FACTOR=3
+      - ZEEBE_CLUSTER_SIZE=3
+      - ZEEBE_CONTACT_POINTS=zeebe-node0:26502
+    volumes:
+      - ./zeebe/zeebe.cfg.toml:/usr/local/zeebe/conf/zeebe.cfg.toml
+    networks:
+      - zeebe-network
+    depends_on:
+      - zeebe-node0
+      - zeebe-elasticsearch
+
+  zeebe-node2:
+    container_name: zeebe-broker-3
+    image: camunda/zeebe:0.22.1
+    environment:
+      - ZEEBE_LOG_LEVEL=debug
+      - ZEEBE_NODE_ID=2
+      - ZEEBE_PARTITIONS_COUNT=2
+      - ZEEBE_REPLICATION_FACTOR=3
+      - ZEEBE_CLUSTER_SIZE=3
+      - ZEEBE_CONTACT_POINTS=zeebe-node0:26502
+    volumes:
+      - ./zeebe/zeebe.cfg.toml:/usr/local/zeebe/conf/zeebe.cfg.toml
+    networks:
+      - zeebe-network
+    depends_on:
+      - zeebe-node1
+      - zeebe-elasticsearch
+
+  zeebe-operate:
+    container_name: zeebe-operate
+    image: camunda/operate:1.2.0
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./zeebe-operate/application.yml:/usr/local/operate/config/application.yml
+    networks:
+      - zeebe-network
+    depends_on:
+      - zeebe-elasticsearch
+      - zeebe-gateway
+
+  zeebe-elasticsearch:
+    container_name: zeebe-elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.7.1
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - cluster.name=zeebe-elasticsearch
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - zeebe-elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - zeebe-network
+
+  zeebe-kibana:
+    container_name: zeebe-kibana
+    image: docker.elastic.co/kibana/kibana-oss:6.7.1
+    ports:
+      - "5601:5601"
+    volumes:
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+    networks:
+      - zeebe-network
+    depends_on:
+      - zeebe-elasticsearch

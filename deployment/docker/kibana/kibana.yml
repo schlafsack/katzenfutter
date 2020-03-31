@@ -1,0 +1,4 @@
+server:
+  name: zeebe_kibana
+elasticsearch:
+  hosts: http://zeebe-elasticsearch:9200

@@ -4,7 +4,7 @@
     <bpmn:startEvent id="new_order" name="New Order">
       <bpmn:outgoing>SequenceFlow_07eudg2</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:subProcess id="warehouse_process" name="WAREHOUSE PROCESS">
+    <bpmn:subProcess id="warehouse_process" name="Warehouse Process">
       <bpmn:incoming>SequenceFlow_1f7wiqh</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_150m7u1</bpmn:outgoing>
       <bpmn:multiInstanceLoopCharacteristics>

@@ -25,11 +25,7 @@ func main() {
 
 	ctx := context.Background()
 	for {
-		//log.Println("New order...")
-		_, err = zbClient.NewCreateInstanceCommand().BPMNProcessId("test_process").LatestVersion().Send(ctx)
-		if err != nil {
-			panic(err)
-		}
+
 		time.Sleep(10 * time.Millisecond)
 	}
 }

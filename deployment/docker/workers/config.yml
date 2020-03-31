@@ -1,0 +1,4 @@
+worker:
+  frequency: 5
+  zeebe:
+    brokerEndpoint: "zeebe-gateway:26500"

@@ -23,7 +23,7 @@ func New() *Configuration {
 		v: viper.New(),
 	}
 
-	c.v.SetDefault(varPathToConfig, "config.yaml")
+	c.v.SetDefault(varPathToConfig, "config.yml")
 	c.v.SetDefault(varBrokerAddr, "0.0.0.0:26500")
 	c.v.AutomaticEnv()
 	c.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
