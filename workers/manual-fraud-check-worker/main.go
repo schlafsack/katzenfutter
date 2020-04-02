@@ -27,19 +27,18 @@ package main
 import (
 	"context"
 	"fmt"
-	"fraud-check-worker/configuration"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/entities"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/worker"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/zbc"
 	"log"
+	"manual-fraud-check-worker/configuration"
 	"math/rand"
 	"time"
 )
 
 const (
-	OkColor    = "\033[1;36m%s\033[0m"
-	HoldColor  = "\033[1;33m%s\033[0m"
-	FraudColor = "\033[1;31m%s\033[0m"
+	OkColor    = "\033[1;36m%t\033[0m"
+	FraudColor = "\033[1;31m%t\033[0m"
 )
 
 func main() {
@@ -59,7 +58,7 @@ func main() {
 		panic(err)
 	}
 
-	jobWorker := zbClient.NewJobWorker().JobType("fraud_check_task").Handler(handleJob).Open()
+	jobWorker := zbClient.NewJobWorker().JobType("manual_fraud_check_task").Handler(handleJob).Open()
 	defer jobWorker.Close()
 
 	jobWorker.AwaitClose()
@@ -74,27 +73,25 @@ func handleJob(client worker.JobClient, job entities.Job) {
 		return
 	}
 
-	fraudy := rand.Intn(100) >= 80
-	manual := rand.Intn(100) >= 50
+	fraudy := getFraudDecision(variables["order_id"].(string))
 	variables["fraud"] = fraudy
-	variables["fraud_manual"] = fraudy && manual
 
 	err = completeJob(client, job, variables)
 	if err != nil {
 		log.Println("order", variables["order_id"], "| MESSAGE DROPPED")
 	} else {
 		color := OkColor
-		msg := "false"
 		if fraudy {
 			color = FraudColor
-			msg = "true"
-			if manual {
-				color = HoldColor
-				msg = "HOLD"
-			}
 		}
-		log.Println("order", variables["order_id"], "| fraudy:", fmt.Sprintf(color, msg))
+		log.Println("order", variables["order_id"], "| screened by: Johnny Catfood fraudy:", fmt.Sprintf(color, fraudy))
 	}
+}
+
+func getFraudDecision(orderId string) bool {
+	fmt.Println("Is order ", orderId, " fraudy? (y/n): y")
+	// TODO - read keyboard input here - remember, we are handling many concurrent calls and the keyboard is a shared resource
+	return true
 }
 
 func failJob(client worker.JobClient, job entities.Job) error {

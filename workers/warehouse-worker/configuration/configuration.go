@@ -35,6 +35,7 @@ import (
 
 const (
 	varBrokerAddr   = "worker.zeebe.brokerEndpoint"
+	varFreq         = "worker.frequency"
 	varPathToConfig = "config.file"
 )
 
@@ -49,6 +50,7 @@ func New() *Configuration {
 
 	c.v.SetDefault(varPathToConfig, "config.yml")
 	c.v.SetDefault(varBrokerAddr, "0.0.0.0:26500")
+	c.v.SetDefault(varFreq, 2.5)
 	c.v.AutomaticEnv()
 	c.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	c.v.SetTypeByDefaultValue(true)
@@ -71,6 +73,10 @@ func New() *Configuration {
 
 func (c *Configuration) GetBrokerEndpoint() string {
 	return c.v.GetString(varBrokerAddr)
+}
+
+func (c *Configuration) GetFrequency() float64 {
+	return c.v.GetFloat64(varFreq)
 }
 
 // GetPathToConfig returns the path to the config file

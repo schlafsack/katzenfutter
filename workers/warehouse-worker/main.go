@@ -54,6 +54,8 @@ func main() {
 		panic(err)
 	}
 
+	zbClient.NewUpdateJobRetriesCommand()
+
 	stockAllocationWorker := zbClient.NewJobWorker().JobType("allocate_stock_task").Handler(handleAllocateStockJob).Open()
 	defer stockAllocationWorker.Close()
 
@@ -68,19 +70,20 @@ func main() {
 }
 
 func handleAllocateStockJob(client worker.JobClient, job entities.Job) {
-	jobKey := job.GetKey()
+
+	job.GetVariables()
 
 	variables, err := job.GetVariablesAsMap()
 	if err != nil {
 		// failed to handle job as we require the variables
-		failJob(client, job)
+		_ = failJob(client, job)
 		return
 	}
 
 	allocationlist, faillist, err := allocateStock(variables["consignment"])
 	if err != nil {
 		// failed to set the updated variables
-		failJob(client, job)
+		_ = failJob(client, job)
 		return
 	}
 
@@ -88,81 +91,67 @@ func handleAllocateStockJob(client worker.JobClient, job entities.Job) {
 	variables["fail_list"] = faillist
 	variables["complete_allocation"] = len(faillist) <= 0
 
-	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	err = completeJob(client, job, variables)
 	if err != nil {
-		// failed to set the updated variables
-		failJob(client, job)
-		return
+		log.Println("order", variables["order_id"], "| MESSAGE DROPPED")
+	} else {
+		log.Println("order", variables["order_id"], "| allocation: success", toJson(allocationlist), " fail", toJson(faillist))
 	}
 
-	ctx := context.Background()
-	_, _ = request.Send(ctx)
-
-	log.Println("order", variables["order_id"], "| allocation: success", toJson(allocationlist), " fail", toJson(faillist))
 }
 
 func handleCreatePickListJob(client worker.JobClient, job entities.Job) {
-	jobKey := job.GetKey()
 
 	variables, err := job.GetVariablesAsMap()
 	if err != nil {
 		// failed to handle job as we require the variables
-		failJob(client, job)
+		_ = failJob(client, job)
 		return
 	}
 
 	picklist, err := createPickList(variables["allocation_list"])
 	if err != nil {
 		// failed to set the updated variables
-		failJob(client, job)
+		_ = failJob(client, job)
 		return
 	}
 
 	variables["pick_list"] = picklist
 
-	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	err = completeJob(client, job, variables)
 	if err != nil {
-		// failed to set the updated variables
-		failJob(client, job)
-		return
+		log.Println("order", variables["order_id"], "| MESSAGE DROPPED")
+	} else {
+		log.Println("order", variables["order_id"], "| created pick list:", toJson(picklist))
 	}
 
-	ctx := context.Background()
-	_, _ = request.Send(ctx)
-
-	log.Println("order", variables["order_id"], "| created pick list:", toJson(picklist))
 }
 
 func handlePickPackJob(client worker.JobClient, job entities.Job) {
-	jobKey := job.GetKey()
 
 	variables, err := job.GetVariablesAsMap()
 	if err != nil {
 		// failed to handle job as we require the variables
-		failJob(client, job)
+		_ = failJob(client, job)
 		return
 	}
 
 	dispatchlist, err := createDispatchList(variables["pick_list"])
 	if err != nil {
 		// failed to set the updated variables
-		failJob(client, job)
+		_ = failJob(client, job)
 		return
 	}
 
 	variables["dispatch_list"] = dispatchlist
 
-	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	err = completeJob(client, job, variables)
 	if err != nil {
-		// failed to set the updated variables
-		failJob(client, job)
-		return
+		log.Println("order", variables["order_id"], "| MESSAGE DROPPED")
+	} else {
+		log.Println("order", variables["order_id"], "| dispatched:", toJson(dispatchlist))
 	}
 
-	ctx := context.Background()
-	_, _ = request.Send(ctx)
-
-	log.Println("order", variables["order_id"], "| dispatched:", toJson(dispatchlist))
 }
 
 func allocateStock(consignment interface{}) (map[string]interface{}, map[string]interface{}, error) {
@@ -198,9 +187,21 @@ func createDispatchList(picklist interface{}) (map[string]interface{}, error) {
 	return pickMap, nil
 }
 
-func failJob(client worker.JobClient, job entities.Job) {
+func failJob(client worker.JobClient, job entities.Job) error {
 	ctx := context.Background()
-	_, _ = client.NewFailJobCommand().JobKey(job.GetKey()).Retries(job.Retries - 1).Send(ctx)
+	_, err := client.NewFailJobCommand().JobKey(job.GetKey()).Retries(job.Retries - 1).Send(ctx)
+	return err
+}
+
+func completeJob(client worker.JobClient, job entities.Job, variables map[string]interface{}) error {
+	ctx := context.Background()
+	request, _ := client.NewCompleteJobCommand().JobKey(job.GetKey()).VariablesFromMap(variables)
+	_, err := request.Send(ctx)
+	if err != nil {
+		// failed to set the updated variables
+		_ = failJob(client, job)
+	}
+	return err
 }
 
 func toJson(payload interface{}) string {

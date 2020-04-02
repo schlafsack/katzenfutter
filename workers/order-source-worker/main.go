@@ -26,6 +26,7 @@ package main
 
 import (
 	"context"
+	"github.com/avast/retry-go"
 	"github.com/google/uuid"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/zbc"
 	"log"
@@ -50,19 +51,32 @@ func main() {
 
 	ctx := context.Background()
 	for {
+
 		orderId := uuid.New().String()
 		variables := make(map[string]interface{})
 		variables["order_id"] = orderId
+
 		request, err := zbClient.NewCreateInstanceCommand().BPMNProcessId("order_process").
 			LatestVersion().VariablesFromMap(variables)
 		if err != nil {
 			panic(err)
 		}
-		_, err = request.Send(ctx)
+
+		err = retry.Do(
+			func() error {
+				_, err = request.Send(ctx)
+				return err
+			},
+			retry.Attempts(5),
+			retry.Delay(time.Duration(c.GetFrequency()*10)*time.Second),
+		)
+
 		if err != nil {
-			panic(err)
+			log.Println("order", orderId, "| DROPPED")
+		} else {
+			log.Println("order", orderId, "| created")
 		}
-		log.Println("order", orderId, "| created")
+
 		time.Sleep(time.Duration(c.GetFrequency()) * time.Second)
 	}
 }

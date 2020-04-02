@@ -67,76 +67,76 @@ func main() {
 }
 
 func handleAllocationSuccess(client worker.JobClient, job entities.Job) {
-	jobKey := job.GetKey()
 
 	variables, err := job.GetVariablesAsMap()
 	if err != nil {
 		// failed to handle job as we require the variables
-		failJob(client, job)
+		_ = failJob(client, job)
 		return
 	}
 
-	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	err = completeJob(client, job, variables)
 	if err != nil {
-		// failed to set the updated variables
-		failJob(client, job)
-		return
+		log.Println("order", variables["order_id"], "| MESSAGE DROPPED")
+	} else {
+		orderId := variables["order_id"]
+		lines, ok := variables["dispatch_list"].(map[string]interface{})
+		if !ok {
+			// failed to set the updated variables
+			_ = failJob(client, job)
+			return
+		}
+		lineIds := toJson(lines)
+		msg := fmt.Sprint("Joy! Your cat will be happy and fat and will not starve today."+
+			" Dispatch success for lines ", lineIds, " in order ", orderId)
+		log.Println("order", orderId, "| message:\n", fmt.Sprintf(SuccessColor, msg))
 	}
-
-	ctx := context.Background()
-	_, _ = request.Send(ctx)
-
-	orderId := variables["order_id"]
-	lines, ok := variables["dispatch_list"].(map[string]interface{})
-	if !ok {
-		// failed to set the updated variables
-		failJob(client, job)
-		return
-	}
-	lineIds := toJson(lines)
-	msg := fmt.Sprint("Joy! Your cat will be happy and fat and will not starve today."+
-		" Dispatch success for lines ", lineIds, " in order ", orderId)
-	log.Println("order", orderId, "| message:\n", fmt.Sprintf(SuccessColor, msg))
 }
 
 func handleAllocationFail(client worker.JobClient, job entities.Job) {
-	jobKey := job.GetKey()
 
 	variables, err := job.GetVariablesAsMap()
 	if err != nil {
 		// failed to handle job as we require the variables
-		failJob(client, job)
+		_ = failJob(client, job)
 		return
 	}
 
-	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	err = completeJob(client, job, variables)
 	if err != nil {
-		// failed to set the updated variables
-		failJob(client, job)
-		return
+		log.Println("order", variables["order_id"], "| MESSAGE DROPPED")
+	} else {
+		orderId := variables["order_id"]
+		lines, ok := variables["fail_list"].(map[string]interface{})
+		if !ok {
+			// failed to set the updated variables
+			_ = failJob(client, job)
+			return
+		}
+		lineIds := toJson(lines)
+
+		msg := fmt.Sprint("Commiserations! I'm sorry, your cat is going to get thin today."+
+			" Dispatch fail for lines ", lineIds, " in order ", orderId)
+		log.Println("order", orderId, "| message:\n", fmt.Sprintf(FailColor, msg))
 	}
-
-	ctx := context.Background()
-	_, _ = request.Send(ctx)
-
-	orderId := variables["order_id"]
-	lines, ok := variables["fail_list"].(map[string]interface{})
-	if !ok {
-		// failed to set the updated variables
-		failJob(client, job)
-		return
-	}
-	lineIds := toJson(lines)
-
-	msg := fmt.Sprint("Commiserations! I'm sorry, your cat is going to get thin today."+
-		" Dispatch fail for lines ", lineIds, " in order ", orderId)
-	log.Println("order", orderId, "| message:\n", fmt.Sprintf(FailColor, msg))
 
 }
 
-func failJob(client worker.JobClient, job entities.Job) {
+func failJob(client worker.JobClient, job entities.Job) error {
 	ctx := context.Background()
-	_, _ = client.NewFailJobCommand().JobKey(job.GetKey()).Retries(job.Retries - 1).Send(ctx)
+	_, err := client.NewFailJobCommand().JobKey(job.GetKey()).Retries(job.Retries - 1).Send(ctx)
+	return err
+}
+
+func completeJob(client worker.JobClient, job entities.Job, variables map[string]interface{}) error {
+	ctx := context.Background()
+	request, _ := client.NewCompleteJobCommand().JobKey(job.GetKey()).VariablesFromMap(variables)
+	_, err := request.Send(ctx)
+	if err != nil {
+		// failed to set the updated variables
+		_ = failJob(client, job)
+	}
+	return err
 }
 
 func toJson(payload interface{}) string {

@@ -65,36 +65,43 @@ func main() {
 }
 
 func handleJob(client worker.JobClient, job entities.Job) {
-	jobKey := job.GetKey()
 
 	variables, err := job.GetVariablesAsMap()
 	if err != nil {
 		// failed to handle job as we require the variables
-		failJob(client, job)
+		_ = failJob(client, job)
 		return
 	}
 
 	success := rand.Intn(100) >= 10
 	variables["payment"] = success
 
-	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	err = completeJob(client, job, variables)
 	if err != nil {
-		// failed to set the updated variables
-		failJob(client, job)
-		return
+		log.Println("order", variables["order_id"], "| MESSAGE DROPPED")
+	} else {
+		color := SuccessColor
+		if !success {
+			color = FailColor
+		}
+		log.Println("order", variables["order_id"], "| payment successful:", fmt.Sprintf(color, success))
 	}
 
-	ctx := context.Background()
-	_, _ = request.Send(ctx)
-
-	color := SuccessColor
-	if !success {
-		color = FailColor
-	}
-	log.Println("order", variables["order_id"], "| payment successful:", fmt.Sprintf(color, success))
 }
 
-func failJob(client worker.JobClient, job entities.Job) {
+func failJob(client worker.JobClient, job entities.Job) error {
 	ctx := context.Background()
-	_, _ = client.NewFailJobCommand().JobKey(job.GetKey()).Retries(job.Retries - 1).Send(ctx)
+	_, err := client.NewFailJobCommand().JobKey(job.GetKey()).Retries(job.Retries - 1).Send(ctx)
+	return err
+}
+
+func completeJob(client worker.JobClient, job entities.Job, variables map[string]interface{}) error {
+	ctx := context.Background()
+	request, _ := client.NewCompleteJobCommand().JobKey(job.GetKey()).VariablesFromMap(variables)
+	_, err := request.Send(ctx)
+	if err != nil {
+		// failed to set the updated variables
+		_ = failJob(client, job)
+	}
+	return err
 }

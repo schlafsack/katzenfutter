@@ -60,28 +60,23 @@ func main() {
 }
 
 func handleJob(client worker.JobClient, job entities.Job) {
-	jobKey := job.GetKey()
 
 	variables, err := job.GetVariablesAsMap()
 	if err != nil {
 		// failed to handle job as we require the variables
-		failJob(client, job)
+		_ = failJob(client, job)
 		return
 	}
 
 	c := createConsignments()
 	variables["consignments"] = c
-	log.Println("order", variables["order_id"], "| consignments created:", len(c))
 
-	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	err = completeJob(client, job, variables)
 	if err != nil {
-		// failed to set the updated variables
-		failJob(client, job)
-		return
+		log.Println("order", variables["order_id"], "| MESSAGE DROPPED")
+	} else {
+		log.Println("order", variables["order_id"], "| consignments created:", len(c))
 	}
-
-	ctx := context.Background()
-	_, _ = request.Send(ctx)
 }
 
 func createConsignments() []interface{} {
@@ -98,7 +93,19 @@ func createConsignments() []interface{} {
 	return consignments
 }
 
-func failJob(client worker.JobClient, job entities.Job) {
+func failJob(client worker.JobClient, job entities.Job) error {
 	ctx := context.Background()
-	_, _ = client.NewFailJobCommand().JobKey(job.GetKey()).Retries(job.Retries - 1).Send(ctx)
+	_, err := client.NewFailJobCommand().JobKey(job.GetKey()).Retries(job.Retries - 1).Send(ctx)
+	return err
+}
+
+func completeJob(client worker.JobClient, job entities.Job, variables map[string]interface{}) error {
+	ctx := context.Background()
+	request, _ := client.NewCompleteJobCommand().JobKey(job.GetKey()).VariablesFromMap(variables)
+	_, err := request.Send(ctx)
+	if err != nil {
+		// failed to set the updated variables
+		_ = failJob(client, job)
+	}
+	return err
 }
