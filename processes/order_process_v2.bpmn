@@ -1,4 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ MIT License
+  ~
+  ~ Copyright (c) 2020 Tom Greasley
+  ~
+  ~ Permission is hereby granted, free of charge, to any person obtaining a copy
+  ~ of this software and associated documentation files (the "Software"), to deal
+  ~ in the Software without restriction, including without limitation the rights
+  ~ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  ~ copies of the Software, and to permit persons to whom the Software is
+  ~ furnished to do so, subject to the following conditions:
+  ~
+  ~ The above copyright notice and this permission notice shall be included in all
+  ~ copies or substantial portions of the Software.
+  ~
+  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  ~ SOFTWARE.
+  -->
+
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="Definitions_04m3ywq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Zeebe Modeler" exporterVersion="0.8.0">
   <bpmn:process id="order_process" name="order_process" isExecutable="true">
     <bpmn:startEvent id="new_order" name="New Order">
@@ -9,21 +33,26 @@
       <bpmn:outgoing>SequenceFlow_150m7u1</bpmn:outgoing>
       <bpmn:multiInstanceLoopCharacteristics>
         <bpmn:extensionElements>
-          <zeebe:loopCharacteristics inputCollection="consignments" inputElement="consignment" />
+          <zeebe:loopCharacteristics inputCollection="consignments" inputElement="consignment"/>
         </bpmn:extensionElements>
       </bpmn:multiInstanceLoopCharacteristics>
-      <bpmn:sequenceFlow id="SequenceFlow_09wjbwy" sourceRef="notify_pick_fail_task" targetRef="failed_lines_end" />
-      <bpmn:sequenceFlow id="SequenceFlow_1lzll15" sourceRef="pick_pack_task" targetRef="notify_pick_success_task" />
-      <bpmn:sequenceFlow id="SequenceFlow_1wpp7so" sourceRef="create_picklist_task" targetRef="pick_pack_task" />
-      <bpmn:sequenceFlow id="SequenceFlow_09j0tiu" name="Shipped Lines" sourceRef="partial_allocation_gateway" targetRef="create_picklist_task" />
-      <bpmn:sequenceFlow id="SequenceFlow_0ltia2m" name="Failed Lines" sourceRef="partial_allocation_gateway" targetRef="notify_pick_fail_task" />
-      <bpmn:sequenceFlow id="SequenceFlow_1mpbxb6" name="No" sourceRef="allocation_gateway" targetRef="partial_allocation_gateway">
-        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">complete_allocation==false</bpmn:conditionExpression>
+      <bpmn:sequenceFlow id="SequenceFlow_09wjbwy" sourceRef="notify_dispatch_fail_task" targetRef="failed_lines_end"/>
+      <bpmn:sequenceFlow id="SequenceFlow_1lzll15" sourceRef="pick_pack_task" targetRef="notify_dispatch_success_task"/>
+      <bpmn:sequenceFlow id="SequenceFlow_1wpp7so" sourceRef="create_picklist_task" targetRef="pick_pack_task"/>
+      <bpmn:sequenceFlow id="SequenceFlow_09j0tiu" name="Shipped Lines" sourceRef="partial_allocation_gateway"
+                         targetRef="create_picklist_task"/>
+      <bpmn:sequenceFlow id="SequenceFlow_0ltia2m" name="Failed Lines" sourceRef="partial_allocation_gateway"
+                         targetRef="notify_dispatch_fail_task"/>
+      <bpmn:sequenceFlow id="SequenceFlow_1mpbxb6" name="No" sourceRef="allocation_gateway"
+                         targetRef="partial_allocation_gateway">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">complete_allocation==false
+        </bpmn:conditionExpression>
       </bpmn:sequenceFlow>
-      <bpmn:sequenceFlow id="SequenceFlow_19urn58" name="Yes" sourceRef="allocation_gateway" targetRef="create_picklist_task">
+      <bpmn:sequenceFlow id="SequenceFlow_19urn58" name="Yes" sourceRef="allocation_gateway"
+                         targetRef="create_picklist_task">
         <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">complete_allocation==true</bpmn:conditionExpression>
       </bpmn:sequenceFlow>
-      <bpmn:sequenceFlow id="SequenceFlow_17nv1g0" sourceRef="allocate_stock_task" targetRef="allocation_gateway" />
+      <bpmn:sequenceFlow id="SequenceFlow_17nv1g0" sourceRef="allocate_stock_task" targetRef="allocation_gateway"/>
       <bpmn:sequenceFlow id="SequenceFlow_1efha67" sourceRef="new_consignment" targetRef="allocate_stock_task" />
       <bpmn:endEvent id="goods_shipped_end" name="Goods Shipped">
         <bpmn:incoming>SequenceFlow_0egg8wp</bpmn:incoming>
@@ -66,17 +95,18 @@
         <bpmn:incoming>SequenceFlow_1wpp7so</bpmn:incoming>
         <bpmn:outgoing>SequenceFlow_1lzll15</bpmn:outgoing>
       </bpmn:serviceTask>
-      <bpmn:serviceTask id="notify_pick_fail_task" name="Notify Picking Failure">
+      <bpmn:serviceTask id="notify_dispatch_fail_task" name="Notify Dispatch Failure">
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="notify_pick_fail_task" />
+          <zeebe:taskDefinition type="notify_dispatch_fail_task"/>
         </bpmn:extensionElements>
         <bpmn:incoming>SequenceFlow_0ltia2m</bpmn:incoming>
         <bpmn:outgoing>SequenceFlow_09wjbwy</bpmn:outgoing>
       </bpmn:serviceTask>
-      <bpmn:sequenceFlow id="SequenceFlow_0egg8wp" sourceRef="notify_pick_success_task" targetRef="goods_shipped_end" />
-      <bpmn:serviceTask id="notify_pick_success_task" name="Notify Picking Success">
+      <bpmn:sequenceFlow id="SequenceFlow_0egg8wp" sourceRef="notify_dispatch_success_task"
+                         targetRef="goods_shipped_end"/>
+      <bpmn:serviceTask id="notify_dispatch_success_task" name="Notify Dispatch Success">
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="notify_pick_success_task" />
+          <zeebe:taskDefinition type="notify_dispatch_success_task"/>
         </bpmn:extensionElements>
         <bpmn:incoming>SequenceFlow_1lzll15</bpmn:incoming>
         <bpmn:outgoing>SequenceFlow_0egg8wp</bpmn:outgoing>
@@ -290,15 +320,15 @@
       <bpmndi:BPMNShape id="ServiceTask_17k77qz_di" bpmnElement="pick_pack_task">
         <dc:Bounds x="1580" y="137" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="ServiceTask_1t2zjiu_di" bpmnElement="notify_pick_fail_task">
-        <dc:Bounds x="1740" y="407" width="100" height="80" />
+      <bpmndi:BPMNShape id="ServiceTask_1t2zjiu_di" bpmnElement="notify_dispatch_fail_task">
+        <dc:Bounds x="1740" y="407" width="100" height="80"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="SequenceFlow_0egg8wp_di" bpmnElement="SequenceFlow_0egg8wp">
         <di:waypoint x="1840" y="177" />
         <di:waypoint x="1902" y="177" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="ServiceTask_18dsabn_di" bpmnElement="notify_pick_success_task">
-        <dc:Bounds x="1740" y="137" width="100" height="80" />
+      <bpmndi:BPMNShape id="ServiceTask_18dsabn_di" bpmnElement="notify_dispatch_success_task">
+        <dc:Bounds x="1740" y="137" width="100" height="80"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndEvent_02823cu_di" bpmnElement="order_complete">
         <dc:Bounds x="2052" y="292" width="36" height="36" />
