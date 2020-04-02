@@ -5,7 +5,10 @@ networks:
     driver: bridge
 
 volumes:
-  zeebe-data:
+  zeebe-gateway-data:
+  zeebe-node0-data:
+  zeebe-node1-data:
+  zeebe-node2-data:
   zeebe-elasticsearch-data:
 
 services:
@@ -22,6 +25,7 @@ services:
     ports:
       - "26500:26500"
     volumes:
+      - zeebe-gateway-data:/usr/local/zeebe/data
       - ./zeebe/gateway.cfg.toml:/usr/local/zeebe/conf/gateway.cfg.toml
     networks:
       - zeebe-network
@@ -41,6 +45,7 @@ services:
     ports:
       - "26600:26500"
     volumes:
+      - zeebe-node0-data:/usr/local/zeebe/data
       - ./zeebe/zeebe.cfg.toml:/usr/local/zeebe/conf/zeebe.cfg.toml
     networks:
       - zeebe-network
@@ -58,6 +63,7 @@ services:
       - ZEEBE_CLUSTER_SIZE=3
       - ZEEBE_CONTACT_POINTS=zeebe-node0:26502
     volumes:
+      - zeebe-node1-data:/usr/local/zeebe/data
       - ./zeebe/zeebe.cfg.toml:/usr/local/zeebe/conf/zeebe.cfg.toml
     networks:
       - zeebe-network
@@ -76,6 +82,7 @@ services:
       - ZEEBE_CLUSTER_SIZE=3
       - ZEEBE_CONTACT_POINTS=zeebe-node0:26502
     volumes:
+      - zeebe-node2-data:/usr/local/zeebe/data
       - ./zeebe/zeebe.cfg.toml:/usr/local/zeebe/conf/zeebe.cfg.toml
     networks:
       - zeebe-network

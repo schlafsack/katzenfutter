@@ -26,6 +26,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"fraud-check-worker/configuration"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/entities"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/worker"
@@ -33,6 +34,12 @@ import (
 	"log"
 	"math/rand"
 	"time"
+)
+
+const (
+	OkColor    = "\033[1;36m%t\033[0m"
+	HoldColor  = "\033[1;33m%t\033[0m"
+	FraudColor = "\033[1;31m%t\033[0m"
 )
 
 func main() {
@@ -68,7 +75,8 @@ func handleJob(client worker.JobClient, job entities.Job) {
 		return
 	}
 
-	variables["fraud"] = rand.Intn(100) >= 80
+	fraudy := rand.Intn(100) >= 80
+	variables["fraud"] = fraudy
 
 	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
 	if err != nil {
@@ -80,7 +88,11 @@ func handleJob(client worker.JobClient, job entities.Job) {
 	ctx := context.Background()
 	_, _ = request.Send(ctx)
 
-	log.Println("Order ", variables["order_id"], " fraudy: ", variables["fraud"])
+	color := OkColor
+	if fraudy {
+		color = FraudColor
+	}
+	log.Println("order", variables["order_id"], "| fraudy:", fmt.Sprintf(color, fraudy))
 }
 
 func failJob(client worker.JobClient, job entities.Job) {

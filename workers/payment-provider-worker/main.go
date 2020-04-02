@@ -26,6 +26,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/entities"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/worker"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/zbc"
@@ -33,6 +34,11 @@ import (
 	"math/rand"
 	"payment-provider-worker/configuration"
 	"time"
+)
+
+const (
+	SuccessColor = "\033[1;36m%t\033[0m"
+	FailColor    = "\033[1;31m%t\033[0m"
 )
 
 func main() {
@@ -68,7 +74,8 @@ func handleJob(client worker.JobClient, job entities.Job) {
 		return
 	}
 
-	variables["payment"] = rand.Intn(100) >= 10
+	success := rand.Intn(100) >= 10
+	variables["payment"] = success
 
 	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
 	if err != nil {
@@ -80,7 +87,11 @@ func handleJob(client worker.JobClient, job entities.Job) {
 	ctx := context.Background()
 	_, _ = request.Send(ctx)
 
-	log.Println("Payment taken for Order ", variables["order_id"], variables["payment"])
+	color := SuccessColor
+	if !success {
+		color = FailColor
+	}
+	log.Println("order", variables["order_id"], "| payment successful:", fmt.Sprintf(color, success))
 }
 
 func failJob(client worker.JobClient, job entities.Job) {

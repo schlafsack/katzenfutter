@@ -71,7 +71,7 @@ func handleJob(client worker.JobClient, job entities.Job) {
 
 	c := createConsignments()
 	variables["consignments"] = c
-	log.Println("Created", len(c), "consignments for order", variables["order_id"])
+	log.Println("order", variables["order_id"], "| consignments created:", len(c))
 
 	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
 	if err != nil {

@@ -27,10 +27,17 @@ package main
 import (
 	"context"
 	"customer-service-worker/configuration"
+	"encoding/json"
+	"fmt"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/entities"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/worker"
 	"github.com/zeebe-io/zeebe/clients/go/pkg/zbc"
 	"log"
+)
+
+const (
+	SuccessColor = "\033[1;36m%s\033[0m"
+	FailColor    = "\033[1;31m%s\033[0m"
 )
 
 func main() {
@@ -48,17 +55,18 @@ func main() {
 		panic(err)
 	}
 
-	failedPickWorker := zbClient.NewJobWorker().JobType("notify_pick_fail_task").Handler(handlePickFail).Open()
-	defer failedPickWorker.Close()
+	dispatchSuccessWorker := zbClient.NewJobWorker().JobType("notify_dispatch_success_task").Handler(handleAllocationSuccess).Open()
+	defer dispatchSuccessWorker.Close()
 
-	pickSuccessWorker := zbClient.NewJobWorker().JobType("notify_pick_success_task").Handler(handlePickSuccess).Open()
-	defer pickSuccessWorker.Close()
+	dispatchFailWorker := zbClient.NewJobWorker().JobType("notify_dispatch_fail_task").Handler(handleAllocationFail).Open()
+	defer dispatchFailWorker.Close()
 
-	failedPickWorker.AwaitClose()
-	pickSuccessWorker.AwaitClose()
+	dispatchSuccessWorker.AwaitClose()
+	dispatchFailWorker.AwaitClose()
+
 }
 
-func handlePickSuccess(client worker.JobClient, job entities.Job) {
+func handleAllocationSuccess(client worker.JobClient, job entities.Job) {
 	jobKey := job.GetKey()
 
 	variables, err := job.GetVariablesAsMap()
@@ -78,11 +86,20 @@ func handlePickSuccess(client worker.JobClient, job entities.Job) {
 	ctx := context.Background()
 	_, _ = request.Send(ctx)
 
-	log.Println("Thanks for ordering with us, you cat will not starve today.  Pick success for consignment",
-		variables["consignment"], " in order ", variables["order_id"])
+	orderId := variables["order_id"]
+	lines, ok := variables["dispatch_list"].(map[string]interface{})
+	if !ok {
+		// failed to set the updated variables
+		failJob(client, job)
+		return
+	}
+	lineIds := toJson(lines)
+	msg := fmt.Sprint("Joy! Your cat will be happy and fat and will not starve today."+
+		" Dispatch success for lines ", lineIds, " in order ", orderId)
+	log.Println("order", orderId, "| message:\n", fmt.Sprintf(SuccessColor, msg))
 }
 
-func handlePickFail(client worker.JobClient, job entities.Job) {
+func handleAllocationFail(client worker.JobClient, job entities.Job) {
 	jobKey := job.GetKey()
 
 	variables, err := job.GetVariablesAsMap()
@@ -102,11 +119,30 @@ func handlePickFail(client worker.JobClient, job entities.Job) {
 	ctx := context.Background()
 	_, _ = request.Send(ctx)
 
-	log.Println("I'm sorry, your cat is going to get thin. Pick fail for consignment", variables["fail"],
-		" in order ", variables["order_id"])
+	orderId := variables["order_id"]
+	lines, ok := variables["fail_list"].(map[string]interface{})
+	if !ok {
+		// failed to set the updated variables
+		failJob(client, job)
+		return
+	}
+	lineIds := toJson(lines)
+
+	msg := fmt.Sprint("Commiserations! I'm sorry, your cat is going to get thin today."+
+		" Dispatch fail for lines ", lineIds, " in order ", orderId)
+	log.Println("order", orderId, "| message:\n", fmt.Sprintf(FailColor, msg))
+
 }
 
 func failJob(client worker.JobClient, job entities.Job) {
 	ctx := context.Background()
 	_, _ = client.NewFailJobCommand().JobKey(job.GetKey()).Retries(job.Retries - 1).Send(ctx)
+}
+
+func toJson(payload interface{}) string {
+	str, err := json.Marshal(payload)
+	if err != nil {
+		return "<unknown>"
+	}
+	return string(str)
 }

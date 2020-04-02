@@ -51,7 +51,6 @@ func main() {
 	ctx := context.Background()
 	for {
 		orderId := uuid.New().String()
-		log.Println("New order ", orderId)
 		variables := make(map[string]interface{})
 		variables["order_id"] = orderId
 		request, err := zbClient.NewCreateInstanceCommand().BPMNProcessId("order_process").
@@ -63,6 +62,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		log.Println("order", orderId, "| created")
 		time.Sleep(time.Duration(c.GetFrequency()) * time.Second)
 	}
 }

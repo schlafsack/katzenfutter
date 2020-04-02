@@ -46,10 +46,10 @@ services:
     networks:
       - zeebe-network
 
-#  zeebe-warehouse-worker:
-#    container_name: zeebe-warehouse-worker
-#    volumes:
-#      - ./workers/config.yml:/config.yml
-#    build: ../../workers/warehouse-worker
-#    networks:
-#      - zeebe-network
+  zeebe-warehouse-worker:
+    container_name: zeebe-warehouse-worker
+    volumes:
+      - ./workers/config.yml:/config.yml
+    build: ../../workers/warehouse-worker
+    networks:
+      - zeebe-network
